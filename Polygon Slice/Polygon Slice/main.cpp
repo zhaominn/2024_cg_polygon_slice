@@ -8,34 +8,17 @@
 #include <glm/glm/glm.hpp>
 #include <glm/glm/ext.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
-GLvoid Keyboard(unsigned char key, int x, int y);
-void TimerFunction(int value);
-void Mouse(int button, int state, int x, int y);
-
 #include <vector>
-int mode = 0;
-struct Shape {
-	int shape;
-	int mode;
-	int moveNum;
-};
-Shape shapes[4]{
-	{1,0,0},
-	{2,0,0},
-	{3,0,0},
-	{4,0,0}
-};
+
+bool isDrag = false;
+
 //----------------------------------
 void make_vertexShaders();
 void make_fragmentShaders();
 GLuint make_shaderProgram();
-GLvoid drawScene();
-GLvoid Reshape(int w, int h);
-
-GLuint shaderProgramID; //--- 세이더 프로그램 이름
-GLuint vertexShader; //--- 버텍스 세이더 객체
-GLuint fragmentShader; //--- 프래그먼트 세이더 객체
-//-----------------------------------
+GLuint shaderProgramID;
+GLuint vertexShader;
+GLuint fragmentShader;
 char* filetobuf(const char* file)
 {
 	FILE* fptr;
@@ -53,7 +36,6 @@ char* filetobuf(const char* file)
 	buf[length] = 0;
 	return buf;
 }
-
 void make_vertexShaders()
 {
 	GLchar* vertexSource;
@@ -67,7 +49,6 @@ void make_vertexShaders()
 	GLchar errorLog[512];
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &result);
 }
-
 void make_fragmentShaders()
 {
 	GLchar* fragmentSource;
@@ -80,7 +61,6 @@ void make_fragmentShaders()
 	GLchar errorLog[512];
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
 }
-
 GLuint make_shaderProgram()
 {
 	GLchar errorLog[512];
@@ -107,24 +87,19 @@ GLuint make_shaderProgram()
 	glUseProgram(shaderID); //--- 만들어진 세이더 프로그램 사용하기
 	return shaderID;
 }
-
 std::vector<glm::vec3> vertexColor = {
-	//선
-	glm::vec3(0.0f, 0.0f, 0.0f),
-	glm::vec3(0.0f, 0.0f, 0.0f),
+	//마우스 드래그 선
 	glm::vec3(0.0f, 0.0f, 0.0f),
 	glm::vec3(0.0f, 0.0f, 0.0f),
 };
 
 std::vector<glm::vec3> vertexPosition = {
+	//마우스 드래그 선
 	glm::vec3(1.0f,0.0f,0.0f),
 	glm::vec3(-1.0f,0.0f,0.0f),
-	glm::vec3(0.0f,1.0f,0.0f),
-	glm::vec3(0.0f,-1.0f,0.0f),
 };
 
 GLuint VAO, VBO_position, VBO_color;
-
 void InitBuffer()
 {
 	//--- Vertex Array Object 생성
@@ -153,16 +128,18 @@ void InitBuffer()
 	glVertexAttribPointer(cAttribute, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glEnableVertexAttribArray(cAttribute);
 }
-
 GLvoid drawScene()
 {
 	glClearColor(1.0f, 0.8f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(shaderProgramID); 
+	glUseProgram(shaderProgramID);
 	glBindVertexArray(VAO);
 
-	
+	if (isDrag) {
+		glDrawArrays(GL_LINE_STRIP, 0, 2);
+	}
+
 	glutSwapBuffers();
 }
 
@@ -177,13 +154,58 @@ void ScreenToOpenGL(int x, int y, GLfloat& X, GLfloat& Y) {
 	Y = 1.0f - (static_cast<float>(y) / static_cast<float>(windowHeight)) * 2.0f;
 }
 
+GLvoid Keyboard(unsigned char key, int x, int y)
+{
+	switch (key) {
+	}
+	InitBuffer();
+	glutPostRedisplay();
+}
+
+void Mouse(int button, int state, int x, int y) {
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		//마우스 드래그 시작 선
+		GLfloat X, Y;
+		ScreenToOpenGL(x, y, X, Y); // 좌표 변환
+		isDrag = true;
+		vertexPosition[0] = { X,Y,0.0f };
+		vertexPosition[1] = { X,Y,0.0f };
+	}
+	else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+
+		isDrag = false;
+	}
+	InitBuffer();
+	glutPostRedisplay();
+}
+
+void Motion(int x, int y) {
+	//마우스가움직이는중일때
+	if (isDrag) {
+		GLfloat X, Y;
+		ScreenToOpenGL(x, y, X, Y); // 좌표 변환
+
+		vertexPosition[1] = { X,Y,0.0f };
+	}
+
+	glutPostRedisplay();
+}
+
+void TimerFunction(int value)
+{
+
+	InitBuffer();
+	glutPostRedisplay();
+	glutTimerFunc(60, TimerFunction, 1);
+}
+
 void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 {
-	glutInit(&argc, argv); 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 
+	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowPosition(100, 100);
 	glutInitWindowSize(800, 800);
-	glutCreateWindow("slice game");
+	glutCreateWindow("Slice Game");
 
 	glewExperimental = GL_TRUE;
 	glewInit();
@@ -192,42 +214,13 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	make_fragmentShaders();
 	shaderProgramID = make_shaderProgram();
 
-	InitBuffer(); // 버퍼 초기화
-
-	//---
-
-	//---
-
-	glutDisplayFunc(drawScene); //--- 출력 콜백함수의 지정
-	glutReshapeFunc(Reshape); //--- 다시 그리기 콜백함수 지정
-	glutKeyboardFunc(Keyboard); //--- 키보드 입력 콜백함수 지정
-	glutTimerFunc(60, TimerFunction, 1); // 타이머 함수 설정
-	glutMouseFunc(Mouse);
-	glutMainLoop(); //--- 이벤트 처리 시작
-
-}
-
-GLvoid Keyboard(unsigned char key, int x, int y)
-{
-	switch (key){
-	}
-	InitBuffer(); //버퍼 초기화
-	glutPostRedisplay(); //화면 갱신
-}
-
-void Mouse(int button, int state, int x, int y) {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-
-	}
 	InitBuffer();
-	glutPostRedisplay();
-}
 
-
-void TimerFunction(int value)
-{
-	
-	InitBuffer();  // 버퍼 초기화
-	glutPostRedisplay();
+	glutDisplayFunc(drawScene);
+	glutKeyboardFunc(Keyboard);
 	glutTimerFunc(60, TimerFunction, 1);
+	glutMouseFunc(Mouse);
+	glutMotionFunc(Motion);
+	glutMainLoop();
+
 }

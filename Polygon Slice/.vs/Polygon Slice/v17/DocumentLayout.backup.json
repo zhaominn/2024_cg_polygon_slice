@@ -1,9 +1,9 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\somin\\source\\repos\\Polygon Slice\\",
+  "WorkspaceRootPath": "C:\\Users\\somin\\OneDrive\\2024_cg_polygon_slice\\Polygon Slice\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{18625F42-8B0F-4EF7-A139-B0B6BC0DBA4D}|Polygon Slice\\Polygon Slice.vcxproj|C:\\Users\\somin\\source\\repos\\Polygon Slice\\Polygon Slice\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
+      "AbsoluteMoniker": "D:0:0:{18625F42-8B0F-4EF7-A139-B0B6BC0DBA4D}|Polygon Slice\\Polygon Slice.vcxproj|C:\\Users\\somin\\OneDrive\\2024_cg_polygon_slice\\Polygon Slice\\Polygon Slice\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}",
       "RelativeMoniker": "D:0:0:{18625F42-8B0F-4EF7-A139-B0B6BC0DBA4D}|Polygon Slice\\Polygon Slice.vcxproj|solutionrelative:Polygon Slice\\main.cpp||{D0E1A5C6-B359-4E41-9B60-3365922C2A22}"
     }
   ],
@@ -24,11 +24,11 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "main.cpp",
-              "DocumentMoniker": "C:\\Users\\somin\\source\\repos\\Polygon Slice\\Polygon Slice\\main.cpp",
+              "DocumentMoniker": "C:\\Users\\somin\\OneDrive\\2024_cg_polygon_slice\\Polygon Slice\\Polygon Slice\\main.cpp",
               "RelativeDocumentMoniker": "Polygon Slice\\main.cpp",
-              "ToolTip": "C:\\Users\\somin\\source\\repos\\Polygon Slice\\Polygon Slice\\main.cpp*",
+              "ToolTip": "C:\\Users\\somin\\OneDrive\\2024_cg_polygon_slice\\Polygon Slice\\Polygon Slice\\main.cpp*",
               "RelativeToolTip": "Polygon Slice\\main.cpp*",
-              "ViewState": "AgIAAD0AAAAAAAAAAAAAAE4AAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAAJ8AAAAAAAAAAAAAAKkAAAAQAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2024-11-09T04:23:17.712Z",
               "EditorCaption": ""

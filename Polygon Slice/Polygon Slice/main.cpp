@@ -9,10 +9,6 @@
 #include <glm/glm/ext.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
 #include <vector>
-
-bool isDrag = false;
-
-//----------------------------------
 void make_vertexShaders();
 void make_fragmentShaders();
 GLuint make_shaderProgram();
@@ -87,19 +83,40 @@ GLuint make_shaderProgram()
 	glUseProgram(shaderID); //--- 만들어진 세이더 프로그램 사용하기
 	return shaderID;
 }
+//-----------------------------------------------------------------------------
+bool isDrag = false;
+
+struct GLPOINT {
+	GLfloat x;
+	GLfloat y;
+};
+
+struct Polygon {// 도형들을 저장할 구조체
+	int vertex_num;	// 도형의 정점의 개수
+	int start_index; // VAO에서의 시작 인덱스
+	int move_num; // 움직임 횟수
+	GLPOINT point; // 폴리곤 위치
+	GLPOINT p1; // 곡선 이동 경로 설정을 위한 정점
+	GLPOINT p2;
+	GLPOINT p3;
+};
+
+int TimeNum = 0;
+
+std::vector<struct::Polygon> polygons;
+
 std::vector<glm::vec3> vertexColor = {
 	//마우스 드래그 선
 	glm::vec3(0.0f, 0.0f, 0.0f),
 	glm::vec3(0.0f, 0.0f, 0.0f),
 };
-
 std::vector<glm::vec3> vertexPosition = {
 	//마우스 드래그 선
 	glm::vec3(1.0f,0.0f,0.0f),
 	glm::vec3(-1.0f,0.0f,0.0f),
 };
-
 GLuint VAO, VBO_position, VBO_color;
+
 void InitBuffer()
 {
 	//--- Vertex Array Object 생성
@@ -128,6 +145,46 @@ void InitBuffer()
 	glVertexAttribPointer(cAttribute, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 	glEnableVertexAttribArray(cAttribute);
 }
+
+// 스크린 좌표를 OpenGL 좌표로 변환하는 함수
+void ScreenToOpenGL(int x, int y, GLfloat& X, GLfloat& Y) {
+	GLint viewport[4];
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	int windowWidth = viewport[2];
+	int windowHeight = viewport[3];
+
+	X = (static_cast<float>(x) / static_cast<float>(windowWidth)) * 2.0f - 1.0f;
+	Y = 1.0f - (static_cast<float>(y) / static_cast<float>(windowHeight)) * 2.0f;
+}
+
+// 중심 점을 이용해 모양 별 버텍스 설정하기
+void SetShape(int vertexNum, int startIndex, GLPOINT point) {
+	switch (vertexNum) {
+	case 3:
+		vertexPosition[startIndex] = { point.x, point.y + 0.1f, 0.0f };
+		vertexPosition[startIndex + 1] = { point.x - 0.08f, point.y - 0.06f, 0.0f };
+		vertexPosition[startIndex + 2] = { point.x + 0.08f, point.y - 0.06f, 0.0f };
+		break;
+	}
+}
+
+// 폴리곤 설정 함수
+void SetPolygon() {
+	struct::Polygon temp;
+	temp = { 3, 2 + 3*static_cast<int>(polygons.size()), 0, -1.0f, -0.2f, -1.0f, -0.2f, 0.0f, 0.0f, 1.0f, -1.0f };
+	//temp.vertex_num = rand() % 3 + 3;
+	GLfloat r = (rand() % 10) / 10.0f;
+	GLfloat g = (rand() % 10) / 10.0f;
+	GLfloat b = (rand() % 10) / 10.0f;
+	for (int i = 0; i < temp.vertex_num; ++i) {
+		vertexColor.push_back({ r,g,b });
+		vertexPosition.push_back({ 0.0f,0.0f,0.0f });
+	}
+
+	polygons.push_back(temp);
+	SetShape(temp.vertex_num, temp.start_index, temp.point);
+}
+
 GLvoid drawScene()
 {
 	glClearColor(1.0f, 0.8f, 0.8f, 1.0f);
@@ -140,18 +197,11 @@ GLvoid drawScene()
 		glDrawArrays(GL_LINE_STRIP, 0, 2);
 	}
 
+	for (int i = 0; i < polygons.size(); ++i) {
+		glDrawArrays(GL_TRIANGLES, 2 + 3 * i, 3);
+	}
+
 	glutSwapBuffers();
-}
-
-// 스크린 좌표를 OpenGL 좌표로 변환하는 함수
-void ScreenToOpenGL(int x, int y, GLfloat& X, GLfloat& Y) {
-	GLint viewport[4];
-	glGetIntegerv(GL_VIEWPORT, viewport);
-	int windowWidth = viewport[2];
-	int windowHeight = viewport[3];
-
-	X = (static_cast<float>(x) / static_cast<float>(windowWidth)) * 2.0f - 1.0f;
-	Y = 1.0f - (static_cast<float>(y) / static_cast<float>(windowHeight)) * 2.0f;
 }
 
 GLvoid Keyboard(unsigned char key, int x, int y)
@@ -193,6 +243,22 @@ void Motion(int x, int y) {
 
 void TimerFunction(int value)
 {
+	++TimeNum;
+	if (TimeNum >= 30) {
+		SetPolygon();
+		TimeNum = 0;
+	}
+	
+	for (int i = 0; i < polygons.size(); ++i) {
+		GLfloat t = polygons[i].move_num / 100.0f;
+		polygons[i].point = {
+			 (2 * t * t - 3 * t + 1) * polygons[i].p1.x + (-4 * t * t + 4 * t) * polygons[i].p2.x + (2 * t * t - t) * polygons[i].p3.x,
+			  (2 * t * t - 3 * t + 1) * polygons[i].p1.y + (-4 * t * t + 4 * t) * polygons[i].p2.y + (2 * t * t - t) * polygons[i].p3.y
+		};
+
+		SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point);
+		++polygons[i].move_num;
+	}
 
 	InitBuffer();
 	glutPostRedisplay();

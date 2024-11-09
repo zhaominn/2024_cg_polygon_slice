@@ -1,6 +1,6 @@
 ﻿  main.cpp
 C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(45,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
 C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(57,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(210,2): warning C4060: switch문에 'case' 또는 'default' 레이블이 없습니다.
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(268,6): warning C4326: 'main'의 반환 형식이 'int'이어야 하는데 'void'입니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(224,2): warning C4060: switch문에 'case' 또는 'default' 레이블이 없습니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(307,6): warning C4326: 'main'의 반환 형식이 'int'이어야 하는데 'void'입니다.
   Polygon Slice.vcxproj -> C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\x64\Debug\Polygon Slice.exe

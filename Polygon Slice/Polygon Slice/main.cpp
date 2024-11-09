@@ -161,9 +161,15 @@ void ScreenToOpenGL(int x, int y, GLfloat& X, GLfloat& Y) {
 void SetShape(int vertexNum, int startIndex, GLPOINT point) {
 	switch (vertexNum) {
 	case 3:
-		vertexPosition[startIndex] = { point.x, point.y + 0.1f, 0.0f };
-		vertexPosition[startIndex + 1] = { point.x - 0.08f, point.y - 0.06f, 0.0f };
-		vertexPosition[startIndex + 2] = { point.x + 0.08f, point.y - 0.06f, 0.0f };
+		vertexPosition[startIndex] = { point.x, point.y + 0.15f, 0.0f };
+		vertexPosition[startIndex + 1] = { point.x - 0.12f, point.y - 0.09f, 0.0f };
+		vertexPosition[startIndex + 2] = { point.x + 0.12f, point.y - 0.09f, 0.0f };
+		break;
+	case 4:
+		vertexPosition[startIndex] = { point.x - 0.12f, point.y + 0.12f, 0.0f };
+		vertexPosition[startIndex + 1] = { point.x + 0.12f, point.y + 0.12f, 0.0f };
+		vertexPosition[startIndex + 2] = { point.x - 0.12f, point.y - 0.12f, 0.0f };
+		vertexPosition[startIndex + 3] = { point.x + 0.12f, point.y - 0.12f, 0.0f };
 		break;
 	}
 }
@@ -171,7 +177,11 @@ void SetShape(int vertexNum, int startIndex, GLPOINT point) {
 // 폴리곤 설정 함수
 void SetPolygon() {
 	struct::Polygon temp;
-	temp = { 3, 2 + 3*static_cast<int>(polygons.size()), 0, -1.0f, -0.2f, -1.0f, -0.2f, 0.0f, 0.0f, 1.0f, -1.0f };
+	int direction = (rand() % 2 == 0) ? -1 : 1;
+	GLPOINT p1 = { direction * (-1.2f) ,(rand() % 10) / 10.0f - 0.5f };
+	GLPOINT p2 = { direction * ((rand() % 18) / 10.0f - 0.9f),(rand() % 10) / 10.0f };
+	GLPOINT p3 = { direction * ((rand() % 10) / 10.0f), -1.2f };
+	temp = { rand() % 2 + 3, static_cast<int>(vertexPosition.size()), 0, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
 	//temp.vertex_num = rand() % 3 + 3;
 	GLfloat r = (rand() % 10) / 10.0f;
 	GLfloat g = (rand() % 10) / 10.0f;
@@ -197,8 +207,12 @@ GLvoid drawScene()
 		glDrawArrays(GL_LINE_STRIP, 0, 2);
 	}
 
+	int currentIndex = 2;
 	for (int i = 0; i < polygons.size(); ++i) {
-		glDrawArrays(GL_TRIANGLES, 2 + 3 * i, 3);
+		for (int j = 0; j < polygons[i].vertex_num - 2; ++j)
+			glDrawArrays(GL_TRIANGLES, currentIndex + j, 3);
+
+		currentIndex += polygons[i].vertex_num;
 	}
 
 	glutSwapBuffers();
@@ -248,7 +262,9 @@ void TimerFunction(int value)
 		SetPolygon();
 		TimeNum = 0;
 	}
-	
+
+	bool needResetIndex = false;
+
 	for (int i = 0; i < polygons.size(); ++i) {
 		GLfloat t = polygons[i].move_num / 100.0f;
 		polygons[i].point = {
@@ -258,6 +274,29 @@ void TimerFunction(int value)
 
 		SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point);
 		++polygons[i].move_num;
+	}
+
+	for (int i = 0; i < polygons.size(); ++i) {
+		if (polygons[i].move_num >= 100) {
+			int startIdx = polygons[i].start_index;
+			int numVertices = polygons[i].vertex_num;
+
+			// vertexPosition과 vertexColor에서 정점 데이터 삭제
+			vertexPosition.erase(vertexPosition.begin() + startIdx, vertexPosition.begin() + startIdx + numVertices);
+			vertexColor.erase(vertexColor.begin() + startIdx, vertexColor.begin() + startIdx + numVertices);
+
+			polygons.erase(polygons.begin() + i);
+			--i; // 인덱스 조정
+			needResetIndex = true; // 재설정이 필요함을 표시
+		}
+	}
+
+	if (needResetIndex) {
+		int currentIndex = 2; // 초기 시작 인덱스
+		for (int i = 0; i < polygons.size(); ++i) {
+			polygons[i].start_index = currentIndex;
+			currentIndex += polygons[i].vertex_num; // 각 폴리곤의 정점 개수만큼 인덱스를 증가시킴
+		}
 	}
 
 	InitBuffer();
@@ -288,5 +327,4 @@ void main(int argc, char** argv) //--- 윈도우 출력하고 콜백함수 설정
 	glutMouseFunc(Mouse);
 	glutMotionFunc(Motion);
 	glutMainLoop();
-
 }

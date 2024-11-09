@@ -85,7 +85,7 @@ GLuint make_shaderProgram()
 }
 //-----------------------------------------------------------------------------
 bool isDrag = false;
-
+GLfloat pi = 3.14159265359f;
 struct GLPOINT {
 	GLfloat x;
 	GLfloat y;
@@ -95,6 +95,7 @@ struct Polygon {// 도형들을 저장할 구조체
 	int vertex_num;	// 도형의 정점의 개수
 	int start_index; // VAO에서의 시작 인덱스
 	int move_num; // 움직임 횟수
+	float rotation_angle; //회전 각도
 	GLPOINT point; // 폴리곤 위치
 	GLPOINT p1; // 곡선 이동 경로 설정을 위한 정점
 	GLPOINT p2;
@@ -158,18 +159,21 @@ void ScreenToOpenGL(int x, int y, GLfloat& X, GLfloat& Y) {
 }
 
 // 중심 점을 이용해 모양 별 버텍스 설정하기
-void SetShape(int vertexNum, int startIndex, GLPOINT point) {
+void SetShape(int vertexNum, int startIndex, GLPOINT point, float angle) {
+	float cos_theta = cos(angle);
+	float sin_theta = sin(angle);
+
 	switch (vertexNum) {
-	case 3:
-		vertexPosition[startIndex] = { point.x, point.y + 0.15f, 0.0f };
-		vertexPosition[startIndex + 1] = { point.x - 0.12f, point.y - 0.09f, 0.0f };
-		vertexPosition[startIndex + 2] = { point.x + 0.12f, point.y - 0.09f, 0.0f };
+	case 3: // 삼각형
+		vertexPosition[startIndex] = { point.x + 0.15f * cos(angle*pi/180), point.y + 0.15f * sin(angle * pi / 180), 0.0f };
+		vertexPosition[startIndex + 1] = { point.x + 0.15f * cos((angle + 120) * pi / 180), point.y + 0.15f * sin((angle + 120) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 2] = { point.x + 0.15f * cos((angle + 240) * pi / 180), point.y + 0.15f * sin((angle + 240) * pi / 180), 0.0f };
 		break;
-	case 4:
-		vertexPosition[startIndex] = { point.x - 0.12f, point.y + 0.12f, 0.0f };
-		vertexPosition[startIndex + 1] = { point.x + 0.12f, point.y + 0.12f, 0.0f };
-		vertexPosition[startIndex + 2] = { point.x - 0.12f, point.y - 0.12f, 0.0f };
-		vertexPosition[startIndex + 3] = { point.x + 0.12f, point.y - 0.12f, 0.0f };
+	case 4: // 사각형
+		vertexPosition[startIndex] = { point.x + 0.15f * cos(angle * pi / 180), point.y + 0.15f * sin(angle * pi / 180), 0.0f };
+		vertexPosition[startIndex + 1] = { point.x + 0.15f * cos((angle + 90) * pi / 180), point.y + 0.15f * sin((angle + 90) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 2] = { point.x + 0.15f * cos((angle + 270) * pi / 180), point.y + 0.15f * sin((angle + 270) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 3] = { point.x + 0.15f * cos((angle + 180) * pi / 180), point.y + 0.15f * sin((angle + 180) * pi / 180), 0.0f };
 		break;
 	}
 }
@@ -181,7 +185,7 @@ void SetPolygon() {
 	GLPOINT p1 = { direction * (-1.2f) ,(rand() % 10) / 10.0f - 0.5f };
 	GLPOINT p2 = { direction * ((rand() % 18) / 10.0f - 0.9f),(rand() % 10) / 10.0f };
 	GLPOINT p3 = { direction * ((rand() % 10) / 10.0f), -1.2f };
-	temp = { rand() % 2 + 3, static_cast<int>(vertexPosition.size()), 0, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
+	temp = { rand() % 2 + 3, static_cast<int>(vertexPosition.size()), 0,0.0f, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
 	//temp.vertex_num = rand() % 3 + 3;
 	GLfloat r = (rand() % 10) / 10.0f;
 	GLfloat g = (rand() % 10) / 10.0f;
@@ -192,7 +196,7 @@ void SetPolygon() {
 	}
 
 	polygons.push_back(temp);
-	SetShape(temp.vertex_num, temp.start_index, temp.point);
+	SetShape(temp.vertex_num, temp.start_index, temp.point, temp.rotation_angle);
 }
 
 GLvoid drawScene()
@@ -272,7 +276,8 @@ void TimerFunction(int value)
 			  (2 * t * t - 3 * t + 1) * polygons[i].p1.y + (-4 * t * t + 4 * t) * polygons[i].p2.y + (2 * t * t - t) * polygons[i].p3.y
 		};
 
-		SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point);
+		polygons[i].rotation_angle += 3.0f; // 각도 증가
+		SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point, polygons[i].rotation_angle);
 		++polygons[i].move_num;
 	}
 

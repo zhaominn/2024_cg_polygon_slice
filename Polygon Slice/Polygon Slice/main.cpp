@@ -85,6 +85,7 @@ GLuint make_shaderProgram()
 }
 //-----------------------------------------------------------------------------
 bool isDrag = false;
+bool Line = true;
 GLfloat pi = 3.14159265359f;
 struct GLPOINT {
 	GLfloat x;
@@ -165,7 +166,7 @@ void SetShape(int vertexNum, int startIndex, GLPOINT point, float angle) {
 
 	switch (vertexNum) {
 	case 3: // 삼각형
-		vertexPosition[startIndex] = { point.x + 0.15f * cos(angle*pi/180), point.y + 0.15f * sin(angle * pi / 180), 0.0f };
+		vertexPosition[startIndex] = { point.x + 0.15f * cos(angle * pi / 180), point.y + 0.15f * sin(angle * pi / 180), 0.0f };
 		vertexPosition[startIndex + 1] = { point.x + 0.15f * cos((angle + 120) * pi / 180), point.y + 0.15f * sin((angle + 120) * pi / 180), 0.0f };
 		vertexPosition[startIndex + 2] = { point.x + 0.15f * cos((angle + 240) * pi / 180), point.y + 0.15f * sin((angle + 240) * pi / 180), 0.0f };
 		break;
@@ -174,6 +175,13 @@ void SetShape(int vertexNum, int startIndex, GLPOINT point, float angle) {
 		vertexPosition[startIndex + 1] = { point.x + 0.15f * cos((angle + 90) * pi / 180), point.y + 0.15f * sin((angle + 90) * pi / 180), 0.0f };
 		vertexPosition[startIndex + 2] = { point.x + 0.15f * cos((angle + 270) * pi / 180), point.y + 0.15f * sin((angle + 270) * pi / 180), 0.0f };
 		vertexPosition[startIndex + 3] = { point.x + 0.15f * cos((angle + 180) * pi / 180), point.y + 0.15f * sin((angle + 180) * pi / 180), 0.0f };
+		break;
+	case 5: // 오각형
+		vertexPosition[startIndex] = { point.x + 0.15f * cos(angle * pi / 180), point.y + 0.15f * sin(angle * pi / 180), 0.0f };
+		vertexPosition[startIndex + 1] = { point.x + 0.15f * cos((angle + 72) * pi / 180), point.y + 0.15f * sin((angle + 72) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 2] = { point.x + 0.15f * cos((angle + 288) * pi / 180), point.y + 0.15f * sin((angle + 288) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 3] = { point.x + 0.15f * cos((angle + 144) * pi / 180), point.y + 0.15f * sin((angle + 144) * pi / 180), 0.0f };
+		vertexPosition[startIndex + 4] = { point.x + 0.15f * cos((angle + 216) * pi / 180), point.y + 0.15f * sin((angle + 216) * pi / 180), 0.0f };
 		break;
 	}
 }
@@ -185,8 +193,8 @@ void SetPolygon() {
 	GLPOINT p1 = { direction * (-1.2f) ,(rand() % 10) / 10.0f - 0.5f };
 	GLPOINT p2 = { direction * ((rand() % 18) / 10.0f - 0.9f),(rand() % 10) / 10.0f };
 	GLPOINT p3 = { direction * ((rand() % 10) / 10.0f), -1.2f };
-	temp = { rand() % 2 + 3, static_cast<int>(vertexPosition.size()), 0,0.0f, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
-	//temp.vertex_num = rand() % 3 + 3;
+	temp = { rand() % 3 + 3, static_cast<int>(vertexPosition.size()), 0,0.0f, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
+
 	GLfloat r = (rand() % 10) / 10.0f;
 	GLfloat g = (rand() % 10) / 10.0f;
 	GLfloat b = (rand() % 10) / 10.0f;
@@ -194,7 +202,6 @@ void SetPolygon() {
 		vertexColor.push_back({ r,g,b });
 		vertexPosition.push_back({ 0.0f,0.0f,0.0f });
 	}
-
 	polygons.push_back(temp);
 	SetShape(temp.vertex_num, temp.start_index, temp.point, temp.rotation_angle);
 }
@@ -212,11 +219,19 @@ GLvoid drawScene()
 	}
 
 	int currentIndex = 2;
-	for (int i = 0; i < polygons.size(); ++i) {
-		for (int j = 0; j < polygons[i].vertex_num - 2; ++j)
-			glDrawArrays(GL_TRIANGLES, currentIndex + j, 3);
-
-		currentIndex += polygons[i].vertex_num;
+	if (Line) {
+for (int i = 0; i < polygons.size(); ++i) {
+			for (int j = 0; j < polygons[i].vertex_num - 2; ++j)
+				glDrawArrays(GL_LINE_LOOP, currentIndex + j, 3);
+			currentIndex += polygons[i].vertex_num;
+		}
+	}
+	else {
+		for (int i = 0; i < polygons.size(); ++i) {
+			for (int j = 0; j < polygons[i].vertex_num - 2; ++j)
+				glDrawArrays(GL_TRIANGLES, currentIndex + j, 3);
+			currentIndex += polygons[i].vertex_num;
+		}
 	}
 
 	glutSwapBuffers();
@@ -286,21 +301,20 @@ void TimerFunction(int value)
 			int startIdx = polygons[i].start_index;
 			int numVertices = polygons[i].vertex_num;
 
-			// vertexPosition과 vertexColor에서 정점 데이터 삭제
 			vertexPosition.erase(vertexPosition.begin() + startIdx, vertexPosition.begin() + startIdx + numVertices);
 			vertexColor.erase(vertexColor.begin() + startIdx, vertexColor.begin() + startIdx + numVertices);
 
 			polygons.erase(polygons.begin() + i);
-			--i; // 인덱스 조정
-			needResetIndex = true; // 재설정이 필요함을 표시
+			--i;
+			needResetIndex = true;
 		}
 	}
 
 	if (needResetIndex) {
-		int currentIndex = 2; // 초기 시작 인덱스
+		int currentIndex = 2;
 		for (int i = 0; i < polygons.size(); ++i) {
 			polygons[i].start_index = currentIndex;
-			currentIndex += polygons[i].vertex_num; // 각 폴리곤의 정점 개수만큼 인덱스를 증가시킴
+			currentIndex += polygons[i].vertex_num;
 		}
 	}
 

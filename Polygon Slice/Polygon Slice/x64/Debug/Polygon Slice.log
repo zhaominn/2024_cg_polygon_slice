@@ -1,6 +1,8 @@
 ﻿  main.cpp
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(45,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(57,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(382,2): warning C4060: switch문에 'case' 또는 'default' 레이블이 없습니다.
-C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(484,6): warning C4326: 'main'의 반환 형식이 'int'이어야 하는데 'void'입니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(44,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(55,9): warning C4101: 'errorLog' :참조되지 않은 지역 변수입니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(258,18): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(580,15): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(677,17): warning C4244: '인수': 'GLfloat'에서 'unsigned int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\Polygon Slice\main.cpp(681,6): warning C4326: 'main'의 반환 형식이 'int'이어야 하는데 'void'입니다.
   Polygon Slice.vcxproj -> C:\Users\somin\OneDrive\2024_cg_polygon_slice\Polygon Slice\x64\Debug\Polygon Slice.exe

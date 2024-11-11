@@ -94,6 +94,12 @@ struct GLPOINT {
 	GLfloat y;
 };
 
+struct IntersectionInfo {
+	int polygonIndex; // 교차된 폴리곤의 인덱스
+	int v1Index;      // 교차된 폴리곤의 변의 첫 번째 정점 인덱스
+	glm::vec3 intersection; // 교차 지점 좌표
+};
+
 struct Polygon {// 도형들을 저장할 구조체
 	int vertex_num;	// 도형의 정점의 개수
 	int start_index; // VAO에서의 시작 인덱스
@@ -260,18 +266,78 @@ bool LineSegmentsIntersect(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 D, g
 	return false;
 }
 
+void SplitPolygon(const std::vector<IntersectionInfo>& intersections, const struct Polygon& polygon) {
+	if (intersections.size() < 2) {
+		std::cout << "교차 지점이 충분하지 않습니다." << std::endl;
+		return;
+	}
+
+	// 두 교차 지점의 정보를 가져옵니다.
+	const glm::vec3& intersection1 = intersections[0].intersection;
+	const glm::vec3& intersection2 = intersections[1].intersection;
+
+	int startIndex = polygon.start_index;
+
+	// 폴리곤을 구성하는 삼각형 별로 왼쪽과 오른쪽으로 나누어 정점 출력
+	for (int i = 0; i < polygon.vertex_num - 2; ++i) {
+		glm::vec3 v1 = vertexPosition[startIndex];
+		glm::vec3 v2 = vertexPosition[startIndex + i + 1];
+		glm::vec3 v3 = vertexPosition[startIndex + i + 2];
+
+		std::vector<glm::vec3> leftVertices;
+		std::vector<glm::vec3> rightVertices;
+
+		// 각 삼각형의 정점들에 대해 교차 지점을 기준으로 나누기
+		auto classifyVertex = [&](const glm::vec3& vertex) {
+			glm::vec3 dir = intersection2 - intersection1;
+			glm::vec3 rel = vertex - intersection1;
+			float crossProduct = dir.x * rel.y - dir.y * rel.x;  // 벡터의 외적을 이용해 왼쪽/오른쪽 판단
+
+			if (crossProduct > 0) {
+				leftVertices.push_back(vertex);
+			}
+			else {
+				rightVertices.push_back(vertex);
+			}
+			};
+
+		classifyVertex(v1);
+		classifyVertex(v2);
+		classifyVertex(v3);
+
+		// 교차 지점을 양쪽 폴리곤에 모두 추가
+		leftVertices.push_back(intersection1);
+		leftVertices.push_back(intersection2);
+		rightVertices.push_back(intersection1);
+		rightVertices.push_back(intersection2);
+
+		// 결과 출력
+		std::cout << "삼각형 " << i + 1 << "의 왼쪽 폴리곤 정점들:" << std::endl;
+		for (const auto& vertex : leftVertices) {
+			std::cout << "(" << vertex.x << ", " << vertex.y << ")" << std::endl;
+		}
+
+		std::cout << "삼각형 " << i + 1 << "의 오른쪽 폴리곤 정점들:" << std::endl;
+		for (const auto& vertex : rightVertices) {
+			std::cout << "(" << vertex.x << ", " << vertex.y << ")" << std::endl;
+		}
+	}
+}
+
 // 폴리곤들과 드래그한 선의 충돌 여부 확인 함수
-bool IsLineIntersectingPolygons(std::vector<struct Polygon>& polygons, const std::vector<glm::vec3>& vertexPosition, glm::vec3 lineStart, glm::vec3 lineEnd) {
+bool IsLineIntersectingPolygons(std::vector<struct Polygon>& polygons, glm::vec3 lineStart, glm::vec3 lineEnd, std::vector<IntersectionInfo>& intersections) {
 	glm::vec3 intersection;
 	bool isIntersect = false;
-	for (struct Polygon& polygon : polygons) {
-		for (int i = 0; i < polygon.vertex_num; ++i) {
-			glm::vec3 v1 = vertexPosition[polygon.start_index + i];
-			glm::vec3 v2 = vertexPosition[polygon.start_index + (i + 1) % polygon.vertex_num];
+
+	for (int i = 0; i < polygons.size(); ++i) {
+		struct Polygon& polygon = polygons[i];
+		for (int j = 0; j < polygon.vertex_num; ++j) {
+			glm::vec3 v1 = vertexPosition[polygon.start_index + j];
+			glm::vec3 v2 = vertexPosition[polygon.start_index + (j + 1) % polygon.vertex_num];
 
 			if (LineSegmentsIntersect(lineStart, lineEnd, v1, v2, intersection)) {
-				std::cout << "교차 지점: (" << intersection.x << ", " << intersection.y << ")" << std::endl;
-				polygon.rotate = false;
+				polygon.rotate = false; // 회전 중지
+				intersections.push_back({ i, j, intersection });
 				isIntersect = true;
 			}
 		}
@@ -320,19 +386,30 @@ GLvoid Keyboard(unsigned char key, int x, int y)
 
 void Mouse(int button, int state, int x, int y) {
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		//마우스 드래그 시작 선
+		// 마우스 드래그 시작
 		GLfloat X, Y;
 		ScreenToOpenGL(x, y, X, Y); // 좌표 변환
 		isDrag = true;
-		vertexPosition[0] = { X,Y,0.0f };
-		vertexPosition[1] = { X,Y,0.0f };
+		vertexPosition[0] = { X, Y, 0.0f };
+		vertexPosition[1] = { X, Y, 0.0f };
 	}
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
 		isDrag = false;
-		if (IsLineIntersectingPolygons(polygons, vertexPosition, vertexPosition[0], vertexPosition[1])) {
-			std::cout << "충돌이 감지되었습니다!" << std::endl;
+
+		// 교차 여부 확인 후 출력
+		std::vector<IntersectionInfo> intersections;
+		if (IsLineIntersectingPolygons(polygons, vertexPosition[0], vertexPosition[1], intersections)) {
+			if (intersections.size() >= 2) {
+				// 첫 번째 교차된 폴리곤 기준으로 왼쪽과 오른쪽 폴리곤 정점들을 출력
+				SplitPolygon(intersections, polygons[intersections[0].polygonIndex]);
+			}
+			else {
+				std::cout << "두 개 이상의 교차 지점이 필요합니다." << std::endl;
+			}
 		}
 	}
+	InitBuffer();
+	glutPostRedisplay();
 	InitBuffer();
 	glutPostRedisplay();
 }

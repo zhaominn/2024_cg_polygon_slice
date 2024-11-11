@@ -87,6 +87,8 @@ GLuint make_shaderProgram()
 bool isDrag = false;
 bool Line = true;
 GLfloat pi = 3.14159265359f;
+GLfloat gravity = 0.04f; // 중력
+
 struct GLPOINT {
 	GLfloat x;
 	GLfloat y;
@@ -97,6 +99,7 @@ struct Polygon {// 도형들을 저장할 구조체
 	int start_index; // VAO에서의 시작 인덱스
 	int move_num; // 움직임 횟수
 	float rotation_angle; //회전 각도
+	bool rotate;        // 회전 여부
 	GLPOINT point; // 폴리곤 위치
 	GLPOINT p1; // 곡선 이동 경로 설정을 위한 정점
 	GLPOINT p2;
@@ -186,6 +189,29 @@ void SetShape(int vertexNum, int startIndex, GLPOINT point, float angle) {
 	}
 }
 
+void FallShape(int vertexNum, int startIndex, GLPOINT point) {
+	switch (vertexNum) {
+	case 3: // 삼각형
+		vertexPosition[startIndex].y -= gravity;
+		vertexPosition[startIndex + 1].y -= gravity;
+		vertexPosition[startIndex + 2].y -= gravity;
+		break;
+	case 4: // 사각형
+		vertexPosition[startIndex].y -= gravity;
+		vertexPosition[startIndex + 1].y -= gravity;
+		vertexPosition[startIndex + 2].y -= gravity;
+		vertexPosition[startIndex + 3].y -= gravity;
+		break;
+	case 5: // 오각형
+		vertexPosition[startIndex].y -= gravity;
+		vertexPosition[startIndex + 1].y -= gravity;
+		vertexPosition[startIndex + 2].y -= gravity;
+		vertexPosition[startIndex + 3].y -= gravity;
+		vertexPosition[startIndex + 4].y -= gravity;
+		break;
+	}
+}
+
 // 폴리곤 설정 함수
 void SetPolygon() {
 	struct::Polygon temp;
@@ -193,7 +219,7 @@ void SetPolygon() {
 	GLPOINT p1 = { direction * (-1.2f) ,(rand() % 10) / 10.0f - 0.5f };
 	GLPOINT p2 = { direction * ((rand() % 18) / 10.0f - 0.9f),(rand() % 10) / 10.0f };
 	GLPOINT p3 = { direction * ((rand() % 10) / 10.0f), -1.2f };
-	temp = { rand() % 3 + 3, static_cast<int>(vertexPosition.size()), 0,0.0f, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
+	temp = { rand() % 3 + 3, static_cast<int>(vertexPosition.size()), 0,0.0f,true, p1.x , p1.y, p1.x, p1.y, p2.x, p2.y,  p3.x, p3.y };
 
 	GLfloat r = (rand() % 10) / 10.0f;
 	GLfloat g = (rand() % 10) / 10.0f;
@@ -204,6 +230,43 @@ void SetPolygon() {
 	}
 	polygons.push_back(temp);
 	SetShape(temp.vertex_num, temp.start_index, temp.point, temp.rotation_angle);
+}
+
+// 교차 감지 함수: 선분 A(x1, y1) -> B(x2, y2)와 선분 C(x3, y3) -> D(x4, y4) 교차 여부 확인
+bool LineSegmentsIntersect(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 D) {
+	auto cross = [](glm::vec3 v1, glm::vec3 v2) {
+		return v1.x * v2.y - v1.y * v2.x;
+		};
+
+	glm::vec3 AB = B - A;
+	glm::vec3 AC = C - A;
+	glm::vec3 AD = D - A;
+	glm::vec3 CD = D - C;
+	glm::vec3 CA = A - C;
+	glm::vec3 CB = B - C;
+
+	float cross1 = cross(AB, AC);
+	float cross2 = cross(AB, AD);
+	float cross3 = cross(CD, CA);
+	float cross4 = cross(CD, CB);
+
+	return (cross1 * cross2 < 0) && (cross3 * cross4 < 0);
+}
+
+// 폴리곤들과 드래그한 선의 충돌 여부 확인 함수
+bool IsLineIntersectingPolygons(std::vector<struct Polygon>& polygons, const std::vector<glm::vec3>& vertexPosition, glm::vec3 lineStart, glm::vec3 lineEnd) {
+	for (struct Polygon& polygon : polygons) {
+		for (int i = 0; i < polygon.vertex_num; ++i) {
+			glm::vec3 v1 = vertexPosition[polygon.start_index + i];
+			glm::vec3 v2 = vertexPosition[polygon.start_index + (i + 1) % polygon.vertex_num];
+
+			if (LineSegmentsIntersect(lineStart, lineEnd, v1, v2)) {
+				polygon.rotate = false;
+				return true; // 충돌이 감지되면 true 반환
+			}
+		}
+	}
+	return false; // 충돌이 없으면 false 반환
 }
 
 GLvoid drawScene()
@@ -220,7 +283,7 @@ GLvoid drawScene()
 
 	int currentIndex = 2;
 	if (Line) {
-for (int i = 0; i < polygons.size(); ++i) {
+		for (int i = 0; i < polygons.size(); ++i) {
 			for (int j = 0; j < polygons[i].vertex_num - 2; ++j)
 				glDrawArrays(GL_LINE_LOOP, currentIndex + j, 3);
 			currentIndex += polygons[i].vertex_num;
@@ -255,8 +318,11 @@ void Mouse(int button, int state, int x, int y) {
 		vertexPosition[1] = { X,Y,0.0f };
 	}
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
-
 		isDrag = false;
+		if (IsLineIntersectingPolygons(polygons, vertexPosition, vertexPosition[0], vertexPosition[1])) {
+			// 충돌 처리 코드 추가
+			std::cout << "충돌이 감지되었습니다!" << std::endl;
+		}
 	}
 	InitBuffer();
 	glutPostRedisplay();
@@ -285,14 +351,20 @@ void TimerFunction(int value)
 	bool needResetIndex = false;
 
 	for (int i = 0; i < polygons.size(); ++i) {
-		GLfloat t = polygons[i].move_num / 100.0f;
-		polygons[i].point = {
-			 (2 * t * t - 3 * t + 1) * polygons[i].p1.x + (-4 * t * t + 4 * t) * polygons[i].p2.x + (2 * t * t - t) * polygons[i].p3.x,
-			  (2 * t * t - 3 * t + 1) * polygons[i].p1.y + (-4 * t * t + 4 * t) * polygons[i].p2.y + (2 * t * t - t) * polygons[i].p3.y
-		};
+		if (polygons[i].rotate) { // 회전 여부 확인
+			polygons[i].rotation_angle += 3.0f; // 각도 증가
+			GLfloat t = polygons[i].move_num / 100.0f;
+			polygons[i].point = {
+				 (2 * t * t - 3 * t + 1) * polygons[i].p1.x + (-4 * t * t + 4 * t) * polygons[i].p2.x + (2 * t * t - t) * polygons[i].p3.x,
+				  (2 * t * t - 3 * t + 1) * polygons[i].p1.y + (-4 * t * t + 4 * t) * polygons[i].p2.y + (2 * t * t - t) * polygons[i].p3.y
+			};
 
-		polygons[i].rotation_angle += 3.0f; // 각도 증가
-		SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point, polygons[i].rotation_angle);
+			polygons[i].rotation_angle += 3.0f; // 각도 증가
+			SetShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point, polygons[i].rotation_angle);
+		}
+		else {
+			FallShape(polygons[i].vertex_num, polygons[i].start_index, polygons[i].point);
+		}
 		++polygons[i].move_num;
 	}
 

@@ -233,7 +233,7 @@ void SetPolygon() {
 }
 
 // 교차 감지 함수: 선분 A(x1, y1) -> B(x2, y2)와 선분 C(x3, y3) -> D(x4, y4) 교차 여부 확인
-bool LineSegmentsIntersect(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 D) {
+bool LineSegmentsIntersect(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 D, glm::vec3& intersection) {
 	auto cross = [](glm::vec3 v1, glm::vec3 v2) {
 		return v1.x * v2.y - v1.y * v2.x;
 		};
@@ -250,23 +250,33 @@ bool LineSegmentsIntersect(glm::vec3 A, glm::vec3 B, glm::vec3 C, glm::vec3 D) {
 	float cross3 = cross(CD, CA);
 	float cross4 = cross(CD, CB);
 
-	return (cross1 * cross2 < 0) && (cross3 * cross4 < 0);
+	if ((cross1 * cross2 < 0) && (cross3 * cross4 < 0)) {
+		// 교차 지점 계산
+		float t = cross(CD, CA) / cross(CD, AB);
+		intersection = A + t * AB;
+		return true;
+	}
+
+	return false;
 }
 
 // 폴리곤들과 드래그한 선의 충돌 여부 확인 함수
 bool IsLineIntersectingPolygons(std::vector<struct Polygon>& polygons, const std::vector<glm::vec3>& vertexPosition, glm::vec3 lineStart, glm::vec3 lineEnd) {
+	glm::vec3 intersection;
+	bool isIntersect = false;
 	for (struct Polygon& polygon : polygons) {
 		for (int i = 0; i < polygon.vertex_num; ++i) {
 			glm::vec3 v1 = vertexPosition[polygon.start_index + i];
 			glm::vec3 v2 = vertexPosition[polygon.start_index + (i + 1) % polygon.vertex_num];
 
-			if (LineSegmentsIntersect(lineStart, lineEnd, v1, v2)) {
+			if (LineSegmentsIntersect(lineStart, lineEnd, v1, v2, intersection)) {
+				std::cout << "교차 지점: (" << intersection.x << ", " << intersection.y << ")" << std::endl;
 				polygon.rotate = false;
-				return true; // 충돌이 감지되면 true 반환
+				isIntersect = true;
 			}
 		}
 	}
-	return false; // 충돌이 없으면 false 반환
+	return isIntersect;
 }
 
 GLvoid drawScene()
@@ -320,7 +330,6 @@ void Mouse(int button, int state, int x, int y) {
 	else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
 		isDrag = false;
 		if (IsLineIntersectingPolygons(polygons, vertexPosition, vertexPosition[0], vertexPosition[1])) {
-			// 충돌 처리 코드 추가
 			std::cout << "충돌이 감지되었습니다!" << std::endl;
 		}
 	}
